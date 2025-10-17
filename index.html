@@ -9,23 +9,47 @@
 
 <body v-scope="dataset()">
   <p>
-    <input type="file" accept=".png, .jpg, .jpeg" />
-    <figure><img height="200" /></figure> <!-- プレビュー用（JSONのみ） -->
+    <input type="file" accept=".png, .jpg, .jpeg" @change="onFileChange"/>
+    <figure v-if="preview">
+      <img :src="preview" height="200" />
+    </figure>
   </p>
   <p>
-    <button @click="fetchData">データ取得</button>
+    <button @click="fetchData">画像を送信</button>
   </p>
+
+  <pre v-if="data">{{ JSON.stringify(data, null, 2) }}</pre>
 </body>
 
 <script>
   function dataset() {
     return {
-      data: false,
+      file: null,
+      preview: null,
+      data: null,
+
+      onFileChange(e) {
+        this.file = e.target.files[0];
+        if (this.file) {
+          this.preview = URL.createObjectURL(this.file);
+        }
+      },
+      
       async fetchData() {
+        if (!this.file) {
+          window.alert('画像ファイルを選んでください');
+          return;
+        }
+        const body = new FormData();
+        body.append('image', this.file, this.file.name);
+
         const url = 'https://httpbin.org/post';
-        const res = await fetch(url);
-        const obj = await res.json();
-        this.data = obj;
+        const res = await fetch(url, {
+          method: 'POST',
+          body
+        });
+
+        this.data = await res.json();
         console.log(JSON.stringify(this.data, null, 2));
       }
     }
